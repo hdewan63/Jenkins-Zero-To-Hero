@@ -19,16 +19,33 @@ pipeline {
         sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
       }
     }
-    stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://13.220.180.86:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-        }
-      }
+stage('Static Code Analysis') {
+  environment {
+    SONAR_URL = "http://13.220.180.86:9000"
+  }
+  steps {
+    withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+      sh '''
+        cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
+        
+        # Download SonarQube CLI scanner
+        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+        unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+        
+        # Run Maven build first
+        mvn clean compile
+        
+        # Run SonarQube analysis
+        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner \
+        -Dsonar.projectKey=spring-boot-demo \
+        -Dsonar.sources=src/main/java \
+        -Dsonar.java.binaries=target/classes \
+        -Dsonar.host.url=${SONAR_URL} \
+        -Dsonar.login=${SONAR_AUTH_TOKEN}
+      '''
     }
+  }
+}
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "abhishekf5/ultimate-cicd:${BUILD_NUMBER}"
