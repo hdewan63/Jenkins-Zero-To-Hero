@@ -19,30 +19,6 @@ pipeline {
                 sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn clean package'
             }
         }
-        stage('Static Code Analysis') {
-            environment {
-                SONAR_URL = "http://13.220.180.86:9000"
-            }
-            steps {
-                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-                    sh '''
-                        cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
-                        
-                        # Download SonarQube CLI scanner
-                        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                        unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
-                        
-                        # Run SonarQube analysis (target/classes already exists from previous stage)
-                        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner \
-                        -Dsonar.projectKey=spring-boot-demo \
-                        -Dsonar.sources=src/main/java \
-                        -Dsonar.java.binaries=target/classes \
-                        -Dsonar.host.url=${SONAR_URL} \
-                        -Dsonar.login=${SONAR_AUTH_TOKEN}
-                    '''
-                }
-            }
-        }
         stage('Build and Push Docker Image') {
             environment {
                 DOCKER_IMAGE = "abhishekf5/ultimate-cicd:${BUILD_NUMBER}"
@@ -62,7 +38,7 @@ pipeline {
         stage('Update Deployment File') {
             environment {
                 GIT_REPO_NAME = "Jenkins-Zero-To-Hero"
-                GIT_USER_NAME = "********"
+                GIT_USER_NAME = hdewan63
             }
             steps {
                 withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
